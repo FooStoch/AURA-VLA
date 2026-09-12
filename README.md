@@ -6,6 +6,8 @@
 
 **Summary video**: a
 
+**Full project zip**: a
+
 AURA-VLA is a fine-tuning framework for Vision-Language-Action (VLA) models. It extends the OpenVLA-OFT training stack with two auxiliary objectives:
 
 - **Adaptive uncertainty:** uses action risk from action-token representations and action statistics to predict an uncertainty score for adaptive flow matching reasoning
