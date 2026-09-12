@@ -2,7 +2,7 @@
 
 **Research paper**: a 
 
-**Project Github**: a 
+**Project Github**: https://github.com/FooStoch/AURA-VLA
 
 **Summary video**: a
 
