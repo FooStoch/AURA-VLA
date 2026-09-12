@@ -1,7 +1,8 @@
 # AURA-VLA: Adaptive Uncertainty and Region-Aligned Fine-Tuning for Vision-Language-Action Models
 
-**Research paper**:
-**Summary video**:
+**Research paper**: a
+**Project Github**: a
+**Summary video**: a
 
 AURA-VLA is a fine-tuning framework for Vision-Language-Action (VLA) models. It extends the OpenVLA-OFT training stack with two auxiliary objectives:
 
