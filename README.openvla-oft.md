@@ -18,20 +18,79 @@ We retain the OpenVLA-compatible continuous action heads (L1 regression, action 
 - `experiments/robot/openvla_utils.py` and `experiments/robot/robot_utils.py` — model loading and action-generation utilities.
 - `LIBERO.md` and `ALOHA.md` — benchmark-specific setup and commands.
 
-## Installation
+## System Requirements
 
-Create a Python 3.10 environment, install PyTorch for your CUDA setup, then install this repository and Flash Attention 2:
+Inference:
 
-```bash
-conda create -n aura-vla python=3.10 -y
-conda activate aura-vla
-pip install torch torchvision torchaudio
-pip install -e .
-pip install packaging ninja
-pip install "flash-attn==2.5.5" --no-build-isolation
+- 1 GPU with approximately 16 GB VRAM for LIBERO simulation benchmark tasks.
+- 1 GPU with approximately 18 GB VRAM for ALOHA robot tasks.
+
+Training:
+
+- Between 1 and 8 GPUs with approximately 27–80 GB VRAM each, depending on the training setup and batch size, using the default `bfloat16` dtype.
+- AURA-VLA adds the uncertainty and region-alignment heads; actual memory use also depends on whether region masks and counterfactual examples are included in a batch.
+
+## Quick Start
+
+First, set up a conda environment (see [SETUP.md](SETUP.md)). Then run the Python example below to load a compatible VLA checkpoint and generate an action chunk from the included LIBERO observation.
+
+```python
+import pickle
+
+from experiments.robot.libero.run_libero_eval import GenerateConfig
+from experiments.robot.openvla_utils import (
+    get_action_head,
+    get_processor,
+    get_proprio_projector,
+    get_vla,
+    get_vla_action,
+)
+from prismatic.vla.constants import NUM_ACTIONS_CHUNK, PROPRIO_DIM
+
+# See GenerateConfig in experiments/robot/libero/run_libero_eval.py for all options.
+cfg = GenerateConfig(
+    pretrained_checkpoint="/PATH/TO/COMPATIBLE/CHECKPOINT",
+    use_l1_regression=True,
+    use_diffusion=False,
+    use_film=False,
+    num_images_in_input=2,
+    use_proprio=True,
+    load_in_8bit=False,
+    load_in_4bit=False,
+    center_crop=True,
+    num_open_loop_steps=NUM_ACTIONS_CHUNK,
+    unnorm_key="libero_spatial_no_noops",
+)
+
+# Load the VLA policy, processor, continuous action head, and proprio projector.
+vla = get_vla(cfg)
+processor = get_processor(cfg)
+action_head = get_action_head(cfg, llm_dim=vla.llm_dim)
+proprio_projector = get_proprio_projector(cfg, llm_dim=vla.llm_dim, proprio_dim=PROPRIO_DIM)
+
+# The observation contains full_image, wrist_image, state, and task_description.
+with open("experiments/robot/libero/sample_libero_spatial_observation.pkl", "rb") as file:
+    observation = pickle.load(file)
+
+actions = get_vla_action(
+    cfg,
+    vla,
+    processor,
+    observation,
+    observation["task_description"],
+    action_head,
+    proprio_projector,
+)
+print("Generated action chunk:")
+for action in actions:
+    print(action)
 ```
 
-See [SETUP.md](SETUP.md) for the original environment notes. For LIBERO, also install the benchmark and its extra requirements:
+For an AURA-VLA-trained checkpoint, load its separate `aura_vla_module--<step>_checkpoint.pt` with `get_aura_vla_module` from `experiments.robot.openvla_utils`, then pass it as `aura_vla_module=` to `get_vla_action` (or `get_action`). This auxiliary module is used by the adaptive flow-matching path; the baseline example above works without it.
+
+## Installation
+
+See [SETUP.md](SETUP.md) for environment setup. For LIBERO, clone and install the benchmark and its additional requirements:
 
 ```bash
 git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
@@ -39,64 +98,25 @@ pip install -e LIBERO
 pip install -r experiments/robot/libero/libero_requirements.txt
 ```
 
-## Fine-tuning
+## AURA-VLA Fine-Tuning
 
-The following is a standard L1-regression fine-tuning command. Replace paths, dataset name, GPU count, and Weights & Biases values for your environment.
-
-```bash
-torchrun --standalone --nnodes 1 --nproc-per-node X vla-scripts/finetune.py \
-  --vla_path openvla/openvla-7b \
-  --data_root_dir /PATH/TO/RLDS/DATASETS \
-  --dataset_name libero_spatial_no_noops \
-  --run_root_dir /PATH/TO/RUNS \
-  --use_l1_regression True \
-  --use_diffusion False \
-  --use_flow_matching False \
-  --num_images_in_input 2 \
-  --use_proprio True \
-  --batch_size 8 \
-  --learning_rate 5e-4 \
-  --max_steps 150005 \
-  --save_freq 10000 \
-  --image_aug True \
-  --lora_rank 32 \
-  --wandb_entity YOUR_WANDB_ENTITY \
-  --wandb_project aura-vla
-```
-
-### Enable AURA-VLA
-
-Add `--use_aura_vla True` to enable the auxiliary module. These arguments tune its losses:
-
-| Argument | Default | Purpose |
-| --- | ---: | --- |
-| `--aura_hidden_dim` | model hidden size | Hidden width of the AURA-VLA heads. |
-| `--aura_uncertainty_loss_weight` | `1.0` | Weight of uncertainty calibration. |
-| `--aura_uncertainty_error_scale` | `1.0` | L1-error scale used to form risk targets. |
-| `--region_alignment_loss_weight` | `1.0` | Weight of BCE + Dice region alignment. |
-| `--region_alignment_dice_weight` | `1.0` | Dice-loss multiplier within region alignment. |
-| `--region_contrastive_loss_weight` | `1.0` | Weight of negative-region contrast. |
-| `--region_equivariance_loss_weight` | `1.0` | Weight of counterfactual action consistency. |
-| `--region_contrastive_temperature` | `0.07` | Contrastive-softmax temperature. |
-
-Each AURA-VLA checkpoint includes a separate `aura_vla_module--<step>_checkpoint.pt` file alongside the action head, projector, and model checkpoints. Keep these files together when resuming or using AURA-VLA inference helpers.
-
-## Evaluation
-
-After installing LIBERO, run a task suite with a compatible checkpoint:
+Use [vla-scripts/finetune.py](vla-scripts/finetune.py) as the training entry point. Add the following flag to enable AURA-VLA:
 
 ```bash
-python experiments/robot/libero/run_libero_eval.py \
-  --pretrained_checkpoint /PATH/TO/CHECKPOINT \
-  --task_suite_name libero_spatial \
-  --center_crop True
+--use_aura_vla True
 ```
 
-Use the same action-head mode, number of input images, proprioception setting, and LoRA rank that were used during training. See [LIBERO.md](LIBERO.md) for dataset acquisition, suite-specific commands, and evaluation details; see [ALOHA.md](ALOHA.md) for the real-robot workflow.
+The available AURA-VLA controls are `aura_hidden_dim`, `aura_uncertainty_loss_weight`, `aura_uncertainty_error_scale`, `region_alignment_loss_weight`, `region_alignment_dice_weight`, `region_contrastive_loss_weight`, `region_equivariance_loss_weight`, and `region_contrastive_temperature`.
 
-## Programmatic loading
+The uncertainty loss is active whenever predicted and target actions are available. Region alignment additionally uses `target_masks` and can use `negative_target_masks`; counterfactual action consistency uses the optional existing `counterfactual_*` batch fields. Missing optional region/counterfactual fields cause only their associated loss terms to be skipped.
 
-`get_aura_vla_module` in `experiments/robot/openvla_utils.py` loads the separate AURA-VLA checkpoint. Pass the resulting module to the action-generation utilities as `aura_vla_module` when using adaptive flow-matching inference. The helper looks for the `aura_vla_module` checkpoint name documented above.
+Each enabled AURA-VLA run saves the auxiliary state separately as `aura_vla_module--<step>_checkpoint.pt`. Keep it with the corresponding model, action-head, and projector checkpoints.
+
+## Training and Evaluation
+
+See [LIBERO.md](LIBERO.md) for fine-tuning and evaluating in the LIBERO simulation benchmark. See [ALOHA.md](ALOHA.md) for the real-world ALOHA workflow.
+
+When evaluating a checkpoint, match the action-head mode, image count, proprioception setting, LoRA rank, and crop setting used for training.
 
 ## Support
 
