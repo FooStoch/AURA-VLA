@@ -1,11 +1,14 @@
-# AURA-VLA: Adaptive-Uncertainty and Region-Alignment Optimized Fine-Tuning for Vision-Language-Action Models
+# AURA-VLA: Adaptive Uncertainty and Region-Aligned Fine-Tuning for Vision-Language-Action Models
 
-AURA-VLA is a fine-tuning framework for Vision-Language-Action (VLA) models. It extends the OpenVLA/OFT training stack with two auxiliary objectives:
+**Research paper**:
+**Summary video**:
 
-- **Adaptive uncertainty:** predicts action risk from action-token representations and action statistics.
-- **Region alignment:** aligns language-conditioned visual patch features with target regions, optionally using negative-region contrast and counterfactual action supervision.
+AURA-VLA is a fine-tuning framework for Vision-Language-Action (VLA) models. It extends the OpenVLA-OFT training stack with two auxiliary objectives:
 
-The implementation retains the OpenVLA-compatible continuous action heads (L1 regression, diffusion, and flow matching), LoRA fine-tuning, and LIBERO/ALOHA workflows. The AURA-VLA additions are opt-in, so ordinary OpenVLA fine-tuning remains available.
+- **Adaptive uncertainty:** uses action risk from action-token representations and action statistics to predict an uncertainty score for adaptive flow matching reasoning
+- **Region alignment:** aligns language-conditioned visual patch features with target regions using negative-region contrastive loss and counterfactual action supervision
+
+We retain the OpenVLA-compatible continuous action heads (L1 regression, action chunking, etc.), LoRA fine-tuning, and LIBERO/ALOHA workflows. The AURA-VLA additions are opt-in, so ordinary OpenVLA fine-tuning remains available.
 
 ## Repository layout
 
@@ -76,8 +79,6 @@ Add `--use_aura_vla True` to enable the auxiliary module. These arguments tune i
 | `--region_equivariance_loss_weight` | `1.0` | Weight of counterfactual action consistency. |
 | `--region_contrastive_temperature` | `0.07` | Contrastive-softmax temperature. |
 
-For region-supervised training, batches may provide `target_masks` and optional `negative_target_masks`. Counterfactual supervision is optional and uses the existing `counterfactual_input_ids`, `counterfactual_labels`, and `counterfactual_target_actions` (or `counterfactual_actions`) batch fields. When those fields are absent, their corresponding auxiliary terms are skipped; uncertainty calibration remains active when predicted and ground-truth actions are available.
-
 Each AURA-VLA checkpoint includes a separate `aura_vla_module--<step>_checkpoint.pt` file alongside the action head, projector, and model checkpoints. Keep these files together when resuming or using AURA-VLA inference helpers.
 
 ## Evaluation
@@ -97,13 +98,6 @@ Use the same action-head mode, number of input images, proprioception setting, a
 
 `get_aura_vla_module` in `experiments/robot/openvla_utils.py` loads the separate AURA-VLA checkpoint. Pass the resulting module to the action-generation utilities as `aura_vla_module` when using adaptive flow-matching inference. The helper looks for the `aura_vla_module` checkpoint name documented above.
 
-## Citation
+## Support
 
-If you use this code, please cite the accompanying AURA-VLA paper:
-
-```bibtex
-@misc{aura_vla,
-  title={AURA-VLA: Adaptive-Uncertainty and Region-Alignment Optimized Fine-Tuning for Vision-Language-Action Models},
-  note={Project paper}
-}
-```
+If you run into any issues, please email Victor Young (victoryfoo27@gmail.com) to bring the issue to his attention.
