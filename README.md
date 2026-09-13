@@ -4,9 +4,7 @@
 
 **Project Github**: https://github.com/FooStoch/AURA-VLA
 
-**Summary video**: a
-
-**Full project zip**: a
+**Summary video**: https://drive.google.com/file/d/13wkdOr9TcXsw2vBdW9k-027cg6cMtugo/view?usp=sharing
 
 AURA-VLA is a fine-tuning framework for Vision-Language-Action (VLA) models. It extends the OpenVLA-OFT training stack with two auxiliary objectives:
 
