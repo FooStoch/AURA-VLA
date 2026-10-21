@@ -125,7 +125,7 @@ When evaluating a checkpoint, match the action-head mode, image count, proprioce
 
 ## Citation
 
-We are grateful to use the baseline code provided by Kim et. al. (https://github.com/moojink/openvla-oft). Our main contributions are aura-vla.py 
+We are grateful to use the baseline code provided by Kim et. al. (https://github.com/moojink/openvla-oft). Our main contributions are provided above in the "Repository Layout" section.
 
 ## Support
 
