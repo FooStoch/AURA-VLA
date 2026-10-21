@@ -1,6 +1,6 @@
 # AURA-VLA: Adaptive Uncertainty and Region-Aligned Fine-Tuning for Vision-Language-Action Models
 
-**Research paper**: https://drive.google.com/file/d/15MVUuaImx9hxBDYKYCv_LEpC15mnFx7t/view?usp=sharing
+**Research paper**: https://drive.google.com/file/d/1WpVD9wBwfcZD4aws4uetd0wAsSbiBXQy/view?usp=sharing
 
 **Project Github**: https://github.com/FooStoch/AURA-VLA
 
