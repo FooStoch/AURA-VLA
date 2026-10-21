@@ -123,6 +123,10 @@ See [LIBERO.md](LIBERO.md) for fine-tuning and evaluating in the LIBERO simulati
 
 When evaluating a checkpoint, match the action-head mode, image count, proprioception setting, LoRA rank, and crop setting used for training.
 
+## Citation
+
+We are grateful to use the baseline code provided by Kim et. al. (https://github.com/moojink/openvla-oft). Our main contributions are aura-vla.py 
+
 ## Support
 
 If you run into any issues, please email Victor Young (victoryfoo27@gmail.com) to bring the issue to his attention.
